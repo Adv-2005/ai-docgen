@@ -11,8 +11,15 @@
     "frontend"
   ],
   "devDependencies": {
-    "typescript": "5.6.3",
+    "@types/node": "^24.10.2",
     "eslint": "9.0.0",
-    "prettier": "3.0.0"
+    "prettier": "3.0.0",
+    "typescript": "5.6.3"
+  },
+  "dependencies": {
+    "@google-cloud/pubsub": "^5.2.0",
+    "admin": "^1.4.1",
+    "firebase": "^12.6.0",
+    "firebase-functions": "^7.0.1"
   }
 }
