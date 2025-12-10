@@ -1,5 +1,10 @@
 node_modules/
+pnpm-lock.yaml
+.pnpm-store/
+.pnpm/
 
+**/lib/
+**/dist/
 #env variables
 .env
 .env.local
@@ -20,3 +25,17 @@ out/
 
 # Logs
 *.log
+
+#firebase
+.firebase/
+.firebaserc.backup
+firebase-debug.log
+firestore-debug.log
+pubsub-debug.log
+ui-debug.log
+
+# Emulator states
+**/firebase-debug.log
+**/*-debug.log
+
+package-lock.json
