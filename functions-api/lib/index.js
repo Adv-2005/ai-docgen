@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzeRepo = exports.githubWebhook = exports.health = void 0;
+exports.analyzeRepo = exports.getMetrics = exports.generateDailySummary = exports.trackJobMetrics = exports.trackWebhookMetrics = exports.retryFailedQueueItems = exports.processPubSubQueue = exports.githubWebhook = exports.health = void 0;
 // functions-api/src/index.ts
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
@@ -39,6 +39,16 @@ exports.health = functions.https.onRequest((req, res) => {
 // GitHub webhook handler
 var github_1 = require("./webhooks/github");
 Object.defineProperty(exports, "githubWebhook", { enumerable: true, get: function () { return github_1.githubWebhook; } });
+// Queue processing
+var processor_1 = require("./queue/processor");
+Object.defineProperty(exports, "processPubSubQueue", { enumerable: true, get: function () { return processor_1.processPubSubQueue; } });
+Object.defineProperty(exports, "retryFailedQueueItems", { enumerable: true, get: function () { return processor_1.retryFailedQueueItems; } });
+// Monitoring and metrics
+var metrics_1 = require("./monitoring/metrics");
+Object.defineProperty(exports, "trackWebhookMetrics", { enumerable: true, get: function () { return metrics_1.trackWebhookMetrics; } });
+Object.defineProperty(exports, "trackJobMetrics", { enumerable: true, get: function () { return metrics_1.trackJobMetrics; } });
+Object.defineProperty(exports, "generateDailySummary", { enumerable: true, get: function () { return metrics_1.generateDailySummary; } });
+Object.defineProperty(exports, "getMetrics", { enumerable: true, get: function () { return metrics_1.getMetrics; } });
 // Pub/Sub worker for repository analysis
 exports.analyzeRepo = functions.pubsub
     .topic("analyze-repo")

@@ -16,6 +16,17 @@ export const health = functions.https.onRequest((req, res) => {
 // GitHub webhook handler
 export { githubWebhook } from "./webhooks/github";
 
+// Queue processing
+export { processPubSubQueue, retryFailedQueueItems } from "./queue/processor";
+
+// Monitoring and metrics
+export { 
+  trackWebhookMetrics, 
+  trackJobMetrics, 
+  generateDailySummary,
+  getMetrics 
+} from "./monitoring/metrics";
+
 // Pub/Sub worker for repository analysis
 export const analyzeRepo = functions.pubsub
   .topic("analyze-repo")
