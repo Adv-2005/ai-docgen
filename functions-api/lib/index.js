@@ -23,24 +23,59 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzeRepo = exports.health = void 0;
+exports.analyzeRepo = exports.githubWebhook = exports.health = void 0;
+// functions-api/src/index.ts
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
+// Health check endpoint
 exports.health = functions.https.onRequest((req, res) => {
-    res.json({ status: "ok", service: "ai-docgen-api", ts: new Date().toISOString() });
+    res.json({
+        status: "ok",
+        service: "ai-docgen-api",
+        ts: new Date().toISOString()
+    });
 });
+// GitHub webhook handler
+var github_1 = require("./webhooks/github");
+Object.defineProperty(exports, "githubWebhook", { enumerable: true, get: function () { return github_1.githubWebhook; } });
+// Pub/Sub worker for repository analysis
 exports.analyzeRepo = functions.pubsub
     .topic("analyze-repo")
     .onPublish(async (message) => {
     const payload = message.json || {};
+    const jobId = payload.jobId;
     const repoId = payload.repoId || "unknown";
     const prNumber = payload.prNumber ?? null;
-    functions.logger.log("analyzeRepo triggered", { repoId, prNumber, payload });
+    functions.logger.log("analyzeRepo triggered", {
+        jobId,
+        repoId,
+        prNumber,
+        payload
+    });
     const db = admin.firestore();
-    const now = new Date(); // <-- works on ALL SDK versions
+    const now = new Date();
+    // If jobId is provided, update the job status
+    if (jobId) {
+        try {
+            await db.collection("jobs").doc(jobId).update({
+                status: "in-progress",
+                startedAt: now,
+                updatedAt: now,
+            });
+            functions.logger.info("Job status updated to in-progress", { jobId });
+        }
+        catch (error) {
+            functions.logger.error("Failed to update job", {
+                jobId,
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
+    }
+    // Create result document
     const resultRef = db.collection("jobResults").doc();
     await resultRef.set({
+        jobId: jobId || null,
         repoId,
         prNumber,
         status: "completed",
@@ -48,5 +83,15 @@ exports.analyzeRepo = functions.pubsub
         receivedAt: now,
         resultAt: now,
     });
-    return { ok: true };
+    // Update job to completed
+    if (jobId) {
+        await db.collection("jobs").doc(jobId).update({
+            status: "completed",
+            completedAt: now,
+            updatedAt: now,
+            resultId: resultRef.id,
+        });
+        functions.logger.info("Job completed", { jobId, resultId: resultRef.id });
+    }
+    return { ok: true, jobId, resultId: resultRef.id };
 });
