@@ -1,6 +1,7 @@
 // functions-api/src/monitoring/metrics.ts
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 /**
  * Track webhook events metrics
@@ -21,10 +22,10 @@ export const trackWebhookMetrics = functions.firestore
     await metricsRef.set(
       {
         date: dateKey,
-        totalEvents: admin.firestore.FieldValue.increment(1),
-        [`eventTypes.${event.event}`]: admin.firestore.FieldValue.increment(1),
-        [`hourly.${hour}`]: admin.firestore.FieldValue.increment(1),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        totalEvents: FieldValue.increment(1),
+        [`eventTypes.${event.event}`]: FieldValue.increment(1),
+        [`hourly.${hour}`]: FieldValue.increment(1),
+        lastUpdated: FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
@@ -61,16 +62,16 @@ export const trackJobMetrics = functions.firestore
     
     const updateData: any = {
       date: dateKey,
-      totalJobs: admin.firestore.FieldValue.increment(1),
-      [`jobTypes.${after.jobType}`]: admin.firestore.FieldValue.increment(1),
-      [`statuses.${after.status}`]: admin.firestore.FieldValue.increment(1),
-      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      totalJobs: FieldValue.increment(1),
+      [`jobTypes.${after.jobType}`]: FieldValue.increment(1),
+      [`statuses.${after.status}`]: FieldValue.increment(1),
+      lastUpdated: FieldValue.serverTimestamp(),
     };
     
     // Track processing times
     if (processingTimeMs > 0) {
-      updateData.totalProcessingTimeMs = admin.firestore.FieldValue.increment(processingTimeMs);
-      updateData.processedJobsCount = admin.firestore.FieldValue.increment(1);
+      updateData.totalProcessingTimeMs = FieldValue.increment(processingTimeMs);
+      updateData.processedJobsCount = FieldValue.increment(1);
     }
     
     await metricsRef.set(updateData, { merge: true });
@@ -128,7 +129,7 @@ export const generateDailySummary = functions.pubsub
           successRate: Math.round(successRate * 100) / 100,
           avgProcessingTimeMs: Math.round(avgProcessingTime),
         },
-        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        generatedAt: FieldValue.serverTimestamp(),
       };
       
       await db.collection("dailySummaries").doc(dateKey).set(summary);

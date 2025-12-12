@@ -59,8 +59,8 @@ function verifyGitHubSignature(
   
   try {
     return timingSafeEqual(
-      Buffer.from(signature, "utf8"),
-      Buffer.from(digest, "utf8")
+      Buffer.from(signature, "utf8") as NodeJS.ArrayBufferView,
+      Buffer.from(digest, "utf8") as NodeJS.ArrayBufferView
     );
   } catch (error) {
     return false;

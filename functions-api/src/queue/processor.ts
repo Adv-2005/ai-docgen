@@ -1,6 +1,7 @@
 // functions-api/src/queue/processor.ts
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 // We'll import Pub/Sub only when NOT in emulator mode
 let PubSub: any;
@@ -96,7 +97,7 @@ export const processPubSubQueue = functions.firestore
       // Update queue item as published
       await snapshot.ref.update({
         published: true,
-        publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+        publishedAt: FieldValue.serverTimestamp(),
         messageId,
       });
 
@@ -105,8 +106,8 @@ export const processPubSubQueue = functions.firestore
         const db = admin.firestore();
         await db.collection("jobs").doc(data.jobId).update({
           status: "dispatched",
-          dispatchedAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          dispatchedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         });
       }
 
@@ -122,8 +123,8 @@ export const processPubSubQueue = functions.firestore
       // Update queue item with error
       await snapshot.ref.update({
         error: errorMessage,
-        lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
-        retryCount: admin.firestore.FieldValue.increment(1),
+        lastAttemptAt: FieldValue.serverTimestamp(),
+        retryCount: FieldValue.increment(1),
       });
 
       // If it's a critical job, update job status to failed
@@ -132,7 +133,7 @@ export const processPubSubQueue = functions.firestore
         await db.collection("jobs").doc(data.jobId).update({
           status: "failed",
           error: errorMessage,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         });
       }
 
@@ -185,7 +186,7 @@ export const retryFailedQueueItems = functions.pubsub
         
         await doc.ref.update({
           permanentlyFailed: true,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         });
         
         failCount++;
@@ -199,9 +200,9 @@ export const retryFailedQueueItems = functions.pubsub
 
         await doc.ref.update({
           published: true,
-          publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+          publishedAt: FieldValue.serverTimestamp(),
           messageId,
-          error: admin.firestore.FieldValue.delete(),
+          error: FieldValue.delete(),
         });
 
         functions.logger.info("Retry successful", { queueId: doc.id, messageId });
@@ -212,8 +213,8 @@ export const retryFailedQueueItems = functions.pubsub
         
         await doc.ref.update({
           error: errorMessage,
-          lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
-          retryCount: admin.firestore.FieldValue.increment(1),
+          lastAttemptAt: FieldValue.serverTimestamp(),
+          retryCount: FieldValue.increment(1),
         });
 
         functions.logger.error("Retry failed", { queueId: doc.id, error: errorMessage });
