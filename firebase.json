@@ -9,7 +9,24 @@
     {
       "source": "functions-api",
       "runtime": "nodejs24",
-      "codebase": "default",
+      "codebase": "api",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    },
+    {
+      "source": "functions-worker",
+      "runtime": "nodejs24",
+      "codebase": "worker",
       "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "node_modules",
@@ -31,10 +48,10 @@
     "firestore": {
       "port": 8080
     },
-   "pubsub": {
-    "host": "127.0.0.1",
-    "port": 8085
-  },
+    "pubsub": {
+      "host": "127.0.0.1",
+      "port": 8085
+    },
     "ui": {
       "enabled": true
     },
