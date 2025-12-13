@@ -5,6 +5,7 @@ import { Octokit } from "@octokit/rest";
 import * as path from "path";
 import * as fs from "fs/promises";
 import * as os from "os";
+import { getGitHubClient, getAuthMethod } from "../utils/github-auth";
 
 export interface RepoInfo {
   owner: string;
@@ -47,13 +48,17 @@ export class IngestionService {
   private workDir: string;
   private mockMode: boolean;
 
-  constructor(githubToken?: string, mockMode: boolean = false) {
+  constructor(octokit?: Octokit, mockMode: boolean = false) {
     this.git = simpleGit();
-    this.octokit = new Octokit({
-      auth: githubToken || process.env.GITHUB_TOKEN,
-    });
+    this.octokit = octokit || getGitHubClient();
     this.workDir = path.join(os.tmpdir(), "repo-analysis");
     this.mockMode = mockMode || process.env.MOCK_GITHUB === "true";
+    
+    const authMethod = getAuthMethod();
+    functions.logger.info("IngestionService initialized", { 
+      authMethod, 
+      mockMode: this.mockMode 
+    });
   }
 
   /**

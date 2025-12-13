@@ -33,10 +33,10 @@ async function testPROpened() {
     },
     repository: {
       id: 123456789,
-      name: 'test-repo',
-      full_name: 'testuser/test-repo',
+      name: 'WanderLust',
+      full_name: 'Adv-2005/WanderLust',
       owner: {
-        login: 'testuser',
+        login: 'Adv-2005',
       },
     },
     sender: {

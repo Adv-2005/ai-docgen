@@ -49,8 +49,8 @@ export const analyzeRepoWorker = functions.pubsub
 
       const repoFullName = jobData.repoFullName;
       
-      // Enable mock mode for emulator/testing (no GitHub token)
-      const mockMode = !process.env.GITHUB_TOKEN || process.env.MOCK_GITHUB === "true";
+      // Enable mock mode for testing (no GitHub auth)
+      const mockMode = process.env.MOCK_GITHUB === "true";
       const ingestionService = new IngestionService(undefined, mockMode);
       const analysisService = new AnalysisService();
 
