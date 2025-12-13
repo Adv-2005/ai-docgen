@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { IngestionService } from "./services/ingestion.service";
 import { AnalysisService } from "./services/analysis.services";
+import { AIService } from "./services/ai.service";
 import { toFirestoreData } from "./utils/firestore";
 
 admin.initializeApp();
@@ -53,6 +54,7 @@ export const analyzeRepoWorker = functions.pubsub
       const mockMode = process.env.MOCK_GITHUB === "true";
       const ingestionService = new IngestionService(undefined, mockMode);
       const analysisService = new AnalysisService();
+      const aiService = new AIService();
 
       let analysisResult: any = {};
 
@@ -62,6 +64,7 @@ export const analyzeRepoWorker = functions.pubsub
           analysisResult = await processPRAnalysis(
             ingestionService,
             analysisService,
+            aiService,
             repoFullName,
             prNumber
           );
@@ -71,6 +74,7 @@ export const analyzeRepoWorker = functions.pubsub
           analysisResult = await processPushAnalysis(
             ingestionService,
             analysisService,
+            aiService,
             repoFullName,
             changedFiles || []
           );
@@ -80,6 +84,7 @@ export const analyzeRepoWorker = functions.pubsub
           analysisResult = await processInitialIngestion(
             ingestionService,
             analysisService,
+            aiService,
             repoFullName
           );
           break;
@@ -148,6 +153,7 @@ export const analyzeRepoWorker = functions.pubsub
 async function processPRAnalysis(
   ingestionService: IngestionService,
   analysisService: AnalysisService,
+  aiService: AIService,
   repoFullName: string,
   prNumber: number
 ) {
@@ -156,23 +162,28 @@ async function processPRAnalysis(
   // Get PR changes via GitHub API
   const diffResult = await ingestionService.getPRChanges(repoFullName, prNumber);
 
-  const analysisResults = [];
+  const analysisResults: any[] = []; // Use any[] to allow mixed types
 
   // Analyze each changed file
   for (const file of diffResult.files) {
     if (file.status === "deleted") {
+      // For deleted files, create a minimal structure
       analysisResults.push({
         filePath: file.path,
         status: "deleted",
         language: "unknown",
+        functions: [],
+        classes: [],
+        imports: [],
+        exports: [],
+        linesOfCode: 0,
+        additions: file.additions,
+        deletions: file.deletions,
       });
       continue;
     }
 
     try {
-      // For modified/added files, analyze the content
-      // Note: GitHub API provides patch, not full content
-      // For full analysis, we'd need to clone the repo
       const fileAnalysis = await analysisService.analyzeFile(
         file.path,
         file.content || ""
@@ -193,6 +204,25 @@ async function processPRAnalysis(
     }
   }
 
+  // Generate AI documentation (only pass FileAnalysis objects)
+  const fileAnalysisOnly = analysisResults.map(r => ({
+    filePath: r.filePath,
+    language: r.language,
+    functions: r.functions || [],
+    classes: r.classes || [],
+    imports: r.imports || [],
+    exports: r.exports || [],
+    linesOfCode: r.linesOfCode || 0,
+  }));
+
+  const documentation = await aiService.generatePRSummary(
+    prNumber,
+    fileAnalysisOnly,
+    diffResult.commits,
+    diffResult.totalAdditions,
+    diffResult.totalDeletions
+  );
+
   return {
     type: "pr-analysis",
     prNumber,
@@ -201,6 +231,7 @@ async function processPRAnalysis(
     totalDeletions: diffResult.totalDeletions,
     commits: diffResult.commits,
     files: analysisResults,
+    documentation, // AI-generated docs
   };
 }
 
@@ -210,6 +241,7 @@ async function processPRAnalysis(
 async function processPushAnalysis(
   ingestionService: IngestionService,
   analysisService: AnalysisService,
+  aiService: AIService,
   repoFullName: string,
   changedFiles: string[]
 ) {
@@ -218,16 +250,12 @@ async function processPushAnalysis(
     filesCount: changedFiles.length,
   });
 
-  // For push events, analyze the changed files
-  // In mock mode, we'll generate mock content
   const analysisResults = [];
 
   for (const filePath of changedFiles) {
     try {
-      // Generate mock content based on file extension
       const mockContent = generateMockFileContent(filePath);
       const fileAnalysis = await analysisService.analyzeFile(filePath, mockContent);
-
       analysisResults.push(fileAnalysis);
 
     } catch (error) {
@@ -238,11 +266,18 @@ async function processPushAnalysis(
     }
   }
 
+  // Generate architecture documentation
+  const documentation = await aiService.generateArchitectureOverview(
+    repoFullName,
+    analysisResults
+  );
+
   return {
     type: "push-analysis",
     filesChanged: changedFiles.length,
     headSha: "mock-sha-" + Date.now(),
     files: analysisResults,
+    documentation, // AI-generated docs
   };
 }
 
@@ -304,6 +339,7 @@ This is a documentation file.
 async function processInitialIngestion(
   ingestionService: IngestionService,
   analysisService: AnalysisService,
+  aiService: AIService,
   repoFullName: string
 ) {
   functions.logger.info("Processing initial ingestion", { repoFullName });
@@ -328,7 +364,6 @@ async function processInitialIngestion(
     try {
       const content = await ingestionService.readFile(cloneResult.localPath, filePath);
       const fileAnalysis = await analysisService.analyzeFile(filePath, content);
-
       analysisResults.push(fileAnalysis);
 
     } catch (error) {
@@ -339,6 +374,18 @@ async function processInitialIngestion(
     }
   }
 
+  // Generate onboarding guide
+  const onboardingDoc = await aiService.generateOnboardingGuide(
+    repoFullName,
+    analysisResults
+  );
+
+  // Generate architecture overview
+  const architectureDoc = await aiService.generateArchitectureOverview(
+    repoFullName,
+    analysisResults
+  );
+
   // Cleanup
   await ingestionService.cleanupRepo(cloneResult.localPath);
 
@@ -348,5 +395,9 @@ async function processInitialIngestion(
     analyzedFiles: analysisResults.length,
     headSha: cloneResult.headSha,
     files: analysisResults,
+    documentation: {
+      onboarding: onboardingDoc,
+      architecture: architectureDoc,
+    },
   };
 }
