@@ -38,7 +38,7 @@ Each milestone represents a functional advancement in the system’s capabilitie
 ---
 
 # Milestone 2 — GitHub Webhooks & Job Dispatching  
-**Status: Upcoming**
+**Status: Completed**
 
 ### Objectives
 - Implement GitHub webhook HTTP endpoint.
@@ -62,10 +62,14 @@ Each milestone represents a functional advancement in the system’s capabilitie
 ### Criteria for Completion
 - Triggering webhook → enqueue job → worker sees job.
 
+### Achievements
+- Implemented GitHub webhook endpoint for PR and push events.
+- Implemented job dispatching via Pub/Sub.
+
 ---
 
 # Milestone 3 — Repo Ingestion & Semantic Code Analysis  
-**Status: Planned**
+**Status: Completed**
 
 ### Objectives
 - Implement repository ingestion logic in `functions-worker`.
@@ -84,10 +88,14 @@ Each milestone represents a functional advancement in the system’s capabilitie
 ### Criteria for Completion
 - System able to ingest a repository and output semantic structure.
 
+### Achievements
+- Implemented repository ingestion using GitHub Apps.
+- Performed code analysis.
+
 ---
 
 # Milestone 4 — AI-Assisted Documentation Generation  
-**Status: Planned**
+**Status: Completed**
 
 ### Objectives
 - Integrate LLM provider adapter (OpenAI, Groq, etc).
@@ -104,6 +112,9 @@ Each milestone represents a functional advancement in the system’s capabilitie
 
 ### Criteria for Completion
 - Worker produces documentation stored in Firestore for display in frontend.
+
+### Achievements
+- Implemented document generation using the Gemini Flash model.
 
 ---
 

@@ -117,7 +117,7 @@ Key services:
     - Which functions/classes were added/modified/removed?
 
 - **ai.service**  
-  - Encapsulates all communication with LLM providers (e.g. OpenAI, Anthropic, Groq).
+  - Encapsulates all communication with LLM providers (Gemini-Flash).
   - Uses embeddings and vector search to provide semantic context for doc generation.
   - Responsible for:
     - Generating onboarding docs.
@@ -346,3 +346,35 @@ _Add this under Serverless Pipeline and Event Flow._
 
 ---
 
+## Current Implementation Status - Milestones 2, 3 & 4
+
+**Last updated: 2024-07-29**
+
+## Overview
+The system has been updated to include GitHub webhooks, repository ingestion with code analysis, and AI-assisted documentation generation.
+
+---
+
+## GitHub Webhooks & Job Dispatching (Milestone 2)
+
+### Implemented Features
+- **GitHub Webhook Endpoint**: A new endpoint in `functions-api` handles `pull_request` and `push` events from GitHub.
+- **Job Dispatching**: Incoming webhooks are parsed, and corresponding jobs are dispatched to a Pub/Sub topic for background processing.
+
+---
+
+## Repo Ingestion & Semantic Code Analysis (Milestone 3)
+
+### Implemented Features
+- **Repository Ingestion**: The `functions-worker` now uses a GitHub App to securely clone and access repository contents.
+- **Code Analysis**: The worker analyzes the codebase to identify key files and structures, preparing it for documentation generation.
+
+---
+
+## AI-Assisted Documentation Generation (Milestone 4)
+
+### Implemented Features
+- **Gemini Flash Integration**: The `ai.service` in the `functions-worker` now integrates with the Gemini Flash model.
+- **Document Generation**: The system uses the Gemini Flash model to generate documentation based on the analyzed code.
+
+---
