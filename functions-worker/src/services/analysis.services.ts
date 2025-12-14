@@ -72,6 +72,12 @@ export class AnalysisService {
     
     functions.logger.info("Analyzing file", { filePath, language });
 
+    // Check if content is a git diff patch
+    if (content.trim().startsWith("@@") || content.includes("@@")) {
+      functions.logger.info("Content appears to be a diff patch, extracting code", { filePath });
+      content = this.extractCodeFromDiff(content);
+    }
+
     try {
       if (language === "typescript" || language === "javascript") {
         return await this.analyzeJavaScriptFile(filePath, content, language);
@@ -91,6 +97,33 @@ export class AnalysisService {
   }
 
   /**
+   * Extract code from git diff patch
+   */
+  private extractCodeFromDiff(diffContent: string): string {
+    const lines = diffContent.split("\n");
+    const codeLines: string[] = [];
+
+    for (const line of lines) {
+      // Skip diff metadata lines
+      if (line.startsWith("@@") || line.startsWith("---") || line.startsWith("+++")) {
+        continue;
+      }
+      
+      // Include added lines (without the + prefix)
+      if (line.startsWith("+")) {
+        codeLines.push(line.substring(1));
+      }
+      // Include context lines (lines without +/- prefix)
+      else if (!line.startsWith("-")) {
+        codeLines.push(line);
+      }
+      // Skip deleted lines (starting with -)
+    }
+
+    return codeLines.join("\n");
+  }
+
+  /**
    * Analyze JavaScript/TypeScript file using Babel
    */
   private async analyzeJavaScriptFile(
@@ -104,9 +137,17 @@ export class AnalysisService {
     const exports: string[] = [];
     const self = this;
 
+    // Skip empty or very short content
+    if (!content || content.trim().length < 10) {
+      functions.logger.warn("Content too short to analyze", { filePath, length: content.length });
+      return this.basicAnalysis(filePath, content, language);
+    }
+
+    let ast;
+    
     try {
       // Parse with Babel
-      const ast = parse(content, {
+      ast = parse(content, {
         sourceType: "module",
         plugins: [
           "typescript",
@@ -117,8 +158,18 @@ export class AnalysisService {
           "asyncGenerators",
           "dynamicImport",
         ],
+        errorRecovery: true, // Try to recover from errors
       });
+    } catch (parseError) {
+      // If parsing fails, log and return basic analysis
+      functions.logger.warn("Babel parsing failed, using basic analysis", {
+        filePath,
+        error: parseError instanceof Error ? parseError.message : String(parseError),
+      });
+      return this.basicAnalysis(filePath, content, language);
+    }
 
+    try {
       // Traverse AST
       traverse(ast, {
         // Function declarations
@@ -252,12 +303,13 @@ export class AnalysisService {
         linesOfCode,
       };
 
-    } catch (error) {
-      functions.logger.error("Babel parsing failed", {
+    } catch (traverseError) {
+      // If traversal fails, log and return basic analysis
+      functions.logger.warn("AST traversal failed, using basic analysis", {
         filePath,
-        error: error instanceof Error ? error.message : String(error),
+        error: traverseError instanceof Error ? traverseError.message : String(traverseError),
       });
-      throw error;
+      return this.basicAnalysis(filePath, content, language);
     }
   }
 
