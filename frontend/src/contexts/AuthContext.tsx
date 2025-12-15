@@ -64,8 +64,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (user) {
           try {
             await updateUserDocument(user);
-          } catch (err) {
+          } catch (err: any) {
             console.error('❌ Failed to update user document:', err);
+            
+            // Don't block auth if Firestore fails
+            if (err.code === 'unavailable' || err.message?.includes('offline')) {
+              console.warn('⚠️ Firestore offline - continuing without user document');
+            }
           }
         }
       },
@@ -118,7 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signOut = async (): Promise<void> =>{
+  const signOut = async (): Promise<void> => {
     try {
       setError(null);
       console.log('🚪 Signing out...');
@@ -185,8 +190,12 @@ async function updateUserDocument(user: User): Promise<void> {
       await setDoc(userRef, userData, { merge: true });
       console.log('✅ Updated user document:', user.uid);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error updating user document:', error);
-    throw error;
+    
+    // Re-throw only if it's not a network/offline error
+    if (error.code !== 'unavailable' && !error.message?.includes('offline')) {
+      throw error;
+    }
   }
 }

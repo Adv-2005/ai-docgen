@@ -2,7 +2,7 @@
 'use client';
 
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
-// import UserProfileDropdown from '@/components/Auth/UserProfileDropdown';
+import UserProfileDropdown from '@/components/Auth/UserProfileDropdown';
 import { useAuth } from '@/contexts/AuthContext';
 import { FileText } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export default function Home() {
                   <p className="text-sm text-gray-500">Intelligent Documentation Platform</p>
                 </div>
               </div>
-              {/* <UserProfileDropdown /> */}
+              <UserProfileDropdown />
             </div>
           </div>
         </header>
