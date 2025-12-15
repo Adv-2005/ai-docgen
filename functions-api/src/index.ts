@@ -6,10 +6,10 @@ admin.initializeApp();
 
 // Health check endpoint
 export const health = functions.https.onRequest((req, res) => {
-  res.json({ 
-    status: "ok", 
-    service: "ai-docgen-api", 
-    ts: new Date().toISOString() 
+  res.json({
+    status: "ok",
+    service: "ai-docgen-api",
+    ts: new Date().toISOString()
   });
 });
 
@@ -20,12 +20,15 @@ export { githubWebhook } from "./webhooks/github";
 export { processPubSubQueue, retryFailedQueueItems } from "./queue/processor";
 
 // Monitoring and metrics
-export { 
-  trackWebhookMetrics, 
-  trackJobMetrics, 
+export {
+  trackWebhookMetrics,
+  trackJobMetrics,
   generateDailySummary,
-  getMetrics 
+  getMetrics
 } from "./monitoring/metrics";
+
+// GitHub token retrieval (NEW!)
+export { getGitHubToken } from "./github/getGitHubToken";
 
 // Pub/Sub worker for repository analysis
 export const analyzeRepo = functions.pubsub
@@ -36,11 +39,11 @@ export const analyzeRepo = functions.pubsub
     const repoId = payload.repoId || "unknown";
     const prNumber = payload.prNumber ?? null;
 
-    functions.logger.log("analyzeRepo triggered", { 
-      jobId, 
-      repoId, 
-      prNumber, 
-      payload 
+    functions.logger.log("analyzeRepo triggered", {
+      jobId,
+      repoId,
+      prNumber,
+      payload
     });
 
     const db = admin.firestore();
@@ -54,12 +57,12 @@ export const analyzeRepo = functions.pubsub
           startedAt: now,
           updatedAt: now,
         });
-        
+
         functions.logger.info("Job status updated to in-progress", { jobId });
       } catch (error) {
-        functions.logger.error("Failed to update job", { 
-          jobId, 
-          error: error instanceof Error ? error.message : String(error) 
+        functions.logger.error("Failed to update job", {
+          jobId,
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }
@@ -84,7 +87,7 @@ export const analyzeRepo = functions.pubsub
         updatedAt: now,
         resultId: resultRef.id,
       });
-      
+
       functions.logger.info("Job completed", { jobId, resultId: resultRef.id });
     }
 

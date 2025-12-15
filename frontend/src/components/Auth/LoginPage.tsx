@@ -6,11 +6,11 @@ import { Github, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
-  const { loading, error, signInWithGithub } = useAuth();
+  const { loading, error, signInWithGitHub } = useAuth();
 
   const handleSignIn = async () => {
     try {
-      await signInWithGithub();
+      await signInWithGitHub();
       // Redirect will happen automatically via AuthContext
     } catch (err) {
       // Error is already set in context
