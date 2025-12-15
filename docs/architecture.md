@@ -667,3 +667,118 @@ You should now see:
 ### Implemented Features
 - **Gemini Flash Integration**: The `ai.service` in the `functions-worker` now integrates with the Gemini Flash model.
 - **Document Generation**: The system uses the Gemini Flash model to generate documentation based on the analyzed code.
+
+
+## Milestone 6 architecture
+
+
+
+## Overview
+
+The project is a web application that allows users to connect their GitHub repositories and automatically generate documentation for them. It's built on a modern technology stack, leveraging serverless functions and a frontend framework for a seamless user experience.
+
+## Technologies Used
+
+- **Framework:** [Next.js](https://nextjs.org/) (React)
+- **Authentication:** [Firebase Authentication](https://firebase.google.com/docs/auth)
+- **Database:** [Firestore](https://firebase.google.com/docs/firestore)
+- **Version Control Integration:** [GitHub API](https://docs.github.com/en/rest)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+
+## File Structure
+
+The project follows a standard Next.js `src` directory structure:
+
+- `src/app/`: Contains the application's pages and routes.
+- `src/components/`: Reusable React components used throughout the application.
+- `src/lib/`: Houses the core logic for interacting with external services like Firebase and GitHub.
+- `src/hooks/`: Custom React hooks for managing state and data fetching.
+- `src/contexts/`: React context providers, such as the `AuthContext`.
+
+## Core Features and Implementation
+
+### 1. Authentication
+
+- **Implementation:** User authentication is handled by Firebase Authentication. The `AuthContext.tsx` provides a global context for user authentication state, making it accessible to all components.
+- **Components:**
+    - `src/components/Auth/LoginButton.tsx`: A simple button to initiate the login process.
+    - `src/app/login/page.tsx`: The dedicated login page.
+    - `src/components/Auth/ProtectedRoute.tsx`: A higher-order component that wraps protected routes, ensuring only authenticated users can access them.
+
+### 2. Repository Integration
+
+- **Implementation:** Users can connect their GitHub repositories to the application. The `src/lib/github.ts` file contains the logic for fetching repository data from the GitHub API. For development, it uses mock data to simulate the API response.
+- **Components:**
+    - `src/app/repositories/page.tsx`: This page displays a list of the user's connected repositories. If no repositories are connected, it prompts the user to add one.
+    - `src/components/repository/RepositoryWizard.tsx`: A multi-step wizard that guides the user through the process of connecting a new repository.
+- **Hooks:**
+    - `src/hooks/useRepositories.ts`: A custom hook for fetching and managing the list of repositories.
+
+### 3. Documentation Generation
+
+- **Implementation:** The core feature of the application is to generate documentation for the connected repositories. While the exact implementation details of the AI generation are not fully exposed on the frontend, the `src/hooks/useJobs.ts` hook suggests that this is an asynchronous process that runs in the background.
+- **Components:**
+    - `src/components/Documentation/DocViewer.tsx`: A component designed to render and display the generated documentation to the user.
+
+## Data Flow
+
+1.  A user signs up or logs in to the application using their GitHub account via Firebase Authentication.
+2.  Once authenticated, the user is redirected to the repositories page (`/repositories`).
+3.  The user initiates the "Connect Repository" wizard.
+4.  The wizard guides the user to select a repository from their GitHub account.
+5.  The application stores the repository information in Firestore and fetches the repository's metadata using the GitHub API.
+6.  The user can then trigger the documentation generation process. This likely creates a "job" that is tracked using the `useJobs.ts` hook.
+7.  A backend service (e.g., a Cloud Function) is triggered, which fetches the repository content, processes it using an AI model, and generates the documentation.
+8.  The generated documentation is saved, likely in Firestore or a dedicated storage solution.
+9.  The user can view the generated documentation through the `DocViewer.tsx` component.
+
+## implemented features till now- 
+1. Authentication flow(Github OAuth via Firebase)
+
+## features to be implemented next- 
+
+1. Dashboard - Repository overview, metrics, activity
+2. Documentation Viewer - Browse generated docs with semantic search
+3. Metrics View - Charts showing business impact
+4. Repository Management - Connect/configure repos
+
+1. Dashboard Overview Tab
+
+Key Metrics Cards: Active repos, total docs, time saved, cost savings
+Coverage Trend Chart: 7-day visualization using Recharts
+Job Status Pie Chart: Visual breakdown of completed/in-progress/failed jobs
+Recent Activity Feed: Real-time updates on analysis jobs
+
+2. Repositories Tab
+
+Grid view of connected repositories
+Coverage percentage with visual progress bars
+Quick stats (docs count, files analyzed)
+Action buttons (View Docs, Configure)
+
+3. Documentation Tab
+
+Semantic Search: Search across all generated documentation
+Repository Filter: Filter by specific repo
+Document Cards: Shows type (architecture, API, onboarding, PR summary)
+Click-through to full documentation viewer
+
+4. Metrics Tab (Business Impact)
+
+Impact Cards:
+
+Onboarding time reduction: 65%
+Time saved: 156 hours/month
+Cost savings: $12,400/quarter
+
+
+Usage Statistics: Active users, total analyses, performance metrics
+Trend Visualizations: Coverage over time
+
+
+## What I am currently building 
+Repository connection wizard-
+1. Shows user's GitHub repositories
+2. Allows them to select repos to connect
+3. Sets up webhooks automatically
+4. Stores repo configuration in Firestore
