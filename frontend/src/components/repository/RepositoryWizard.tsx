@@ -1,4 +1,4 @@
-// frontend/components/Repository/RepositoryWizard.tsx
+// frontend/src/components/repository/RepositoryWizard.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,13 +8,17 @@ import {
   Loader2,
   Github,
   AlertCircle,
-  CheckCircle,
   ArrowRight,
   Search,
+  CheckCircle,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchGitHubRepositories, setupWebhook, triggerInitialAnalysis, GitHubRepo } from '@/lib/github';
 import { addRepository } from '@/lib/firestore';
+import RepoCard from './RepoCard';
+import StepIndicator from './StepIndicator';
+import ConnectionProgress from './ConnectionProgress';
 
 interface RepositoryWizardProps {
   onClose: () => void;
@@ -30,6 +34,7 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
   const [searchQuery, setSearchQuery] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [connectedRepos, setConnectedRepos] = useState<Set<number>>(new Set());
+  const [failedRepos, setFailedRepos] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,40 +77,51 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
     setStep(2);
     setError(null);
 
+    const failed = new Set<number>();
+
     try {
       // Connect each selected repository
       for (const repoId of selectedRepos) {
         const repo = repositories.find((r) => r.id === repoId);
         if (!repo) continue;
 
-        // Setup webhook
-        const { webhookId, webhookSecret } = await setupWebhook(repo.full_name);
+        try {
+          // Setup webhook
+          const { webhookId, webhookSecret } = await setupWebhook(repo.full_name);
 
-        // Add to Firestore
-        await addRepository(user.uid, {
-          repoId: repo.id.toString(),
-          repoFullName: repo.full_name,
-          ownerLogin: repo.owner.login,
-          name: repo.name,
-          description: repo.description || undefined,
-          isPrivate: repo.private,
-          language: repo.language || undefined,
-          defaultBranch: repo.default_branch,
-          webhookId,
-          webhookSecret,
-        });
+          // Add to Firestore
+          await addRepository(user.uid, {
+            repoId: repo.id.toString(),
+            repoFullName: repo.full_name,
+            ownerLogin: repo.owner.login,
+            name: repo.name,
+            description: repo.description || undefined,
+            isPrivate: repo.private,
+            language: repo.language || undefined,
+            defaultBranch: repo.default_branch,
+            webhookId,
+            webhookSecret,
+          });
 
-        // Trigger initial analysis
-        await triggerInitialAnalysis(repo.full_name);
+          // Trigger initial analysis
+          await triggerInitialAnalysis(repo.full_name);
 
-        // Mark as connected
-        setConnectedRepos((prev) => new Set([...prev, repoId]));
+          // Mark as connected
+          setConnectedRepos((prev) => new Set([...prev, repoId]));
 
-        // Small delay between repos
-        await new Promise((resolve) => setTimeout(resolve, 500));
+          // Small delay between repos
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        } catch (repoError) {
+          console.error(`Failed to connect ${repo.name}:`, repoError);
+          failed.add(repoId);
+        }
       }
 
+      setFailedRepos(failed);
       setConnecting(false);
+      
+      // Wait a moment before moving to success step
+      await new Promise((resolve) => setTimeout(resolve, 500));
       setStep(3);
 
       if (onComplete) {
@@ -200,11 +216,18 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
                 .map((id) => repositories.find((r) => r.id === id))
                 .filter((r): r is GitHubRepo => r !== undefined)}
               connectedRepos={connectedRepos}
+              failedRepos={failedRepos}
               connecting={connecting}
             />
           )}
 
-          {step === 3 && <Step3Complete count={selectedRepos.size} onClose={onClose} />}
+          {step === 3 && (
+            <Step3Complete 
+              connectedCount={connectedRepos.size}
+              failedCount={failedRepos.size}
+              onClose={onClose} 
+            />
+          )}
         </div>
 
         {/* Footer */}
@@ -237,5 +260,154 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
   );
 }
 
-// Sub-components remain the same as in the demo
-// Copy them from the interactive artifact above
+// Step 1: Select Repositories
+function Step1SelectRepos({
+  repositories,
+  selectedRepos,
+  toggleRepo,
+  loading,
+  searchQuery,
+  setSearchQuery,
+}: {
+  repositories: GitHubRepo[];
+  selectedRepos: Set<number>;
+  toggleRepo: (id: number) => void;
+  loading: boolean;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-600">Loading your repositories...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search repositories..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      {/* Repository Grid */}
+      {repositories.length === 0 ? (
+        <div className="text-center py-12">
+          <Github className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-600">No repositories found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
+          {repositories.map((repo) => (
+            <RepoCard
+              key={repo.id}
+              repo={{
+                id: repo.id,
+                name: repo.name,
+                full_name: repo.full_name,
+                description: repo.description ?? undefined,
+                language: repo.language ?? undefined,
+                default_branch: repo.default_branch,
+                updated_at: repo.updated_at,
+                private: repo.private,
+                stargazers_count: repo.stargazers_count,
+              }}
+              isSelected={selectedRepos.has(repo.id)}
+              onSelect={toggleRepo}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Step 2: Connecting
+function Step2Connecting({
+  selectedRepos,
+  connectedRepos,
+  failedRepos,
+  connecting,
+}: {
+  selectedRepos: GitHubRepo[];
+  connectedRepos: Set<number>;
+  failedRepos: Set<number>;
+  connecting: boolean;
+}) {
+  return (
+    <ConnectionProgress
+      repos={selectedRepos}
+      connectedRepos={connectedRepos}
+      failedRepos={failedRepos}
+      connecting={connecting}
+    />
+  );
+}
+
+// Step 3: Complete
+function Step3Complete({ 
+  connectedCount,
+  failedCount,
+  onClose 
+}: { 
+  connectedCount: number;
+  failedCount: number;
+  onClose: () => void;
+}) {
+  return (
+    <div className="text-center py-8">
+      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <Sparkles className="w-10 h-10 text-green-600" />
+      </div>
+      
+      <h3 className="text-2xl font-bold text-gray-900 mb-2">
+        All Set! 🎉
+      </h3>
+      
+      <p className="text-gray-600 mb-6 max-w-md mx-auto">
+        {connectedCount === 1 
+          ? 'Your repository has been connected successfully.'
+          : `${connectedCount} repositories have been connected successfully.`}
+        {failedCount > 0 && (
+          <span className="block mt-2 text-red-600">
+            {failedCount} {failedCount === 1 ? 'repository' : 'repositories'} failed to connect.
+          </span>
+        )}
+      </p>
+
+      <div className="space-y-4 max-w-md mx-auto mb-8">
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
+          <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-blue-900">Webhooks configured</p>
+            <p className="text-sm text-blue-700">We'll track all changes automatically</p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
+          <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-blue-900">Initial analysis started</p>
+            <p className="text-sm text-blue-700">Documentation will be ready shortly</p>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+      >
+        View Repositories
+      </button>
+    </div>
+  );
+}
