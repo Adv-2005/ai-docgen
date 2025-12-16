@@ -139,7 +139,7 @@ Each milestone represents a functional advancement in the system’s capabilitie
 ---
 
 # Milestone 6 — Frontend Dashboard & Documentation Viewer  
-**Status: Planned**
+**Status: Working**
 
 ### Objectives
 - Build Next.js frontend to visualize:

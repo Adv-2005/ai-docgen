@@ -669,7 +669,7 @@ You should now see:
 - **Document Generation**: The system uses the Gemini Flash model to generate documentation based on the analyzed code.
 
 
-## Milestone 6 architecture
+# Milestone 6 architecture
 
 
 
@@ -782,3 +782,13 @@ Repository connection wizard-
 2. Allows them to select repos to connect
 3. Sets up webhooks automatically
 4. Stores repo configuration in Firestore
+
+Right now its implementing- 
+1. Mock Mode: Works without GitHub API during development
+2. Error Handling: Graceful fallbacks and user-friendly messages
+3. Real-time Updates: Firestore listeners for auto-refresh
+4. Mobile Responsive: Works on all screen sizes
+5. TypeScript: Fully typed with interfaces
+6. Animations: Smooth transitions and loading states
+
+I have currently implemneted this with mock repositories but i want it to fetch real github repos of my github account which i am logged in to
