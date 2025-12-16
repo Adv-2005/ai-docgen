@@ -12,6 +12,7 @@ import {
   Search,
   CheckCircle,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchGitHubRepositories, setupWebhook, triggerInitialAnalysis, GitHubRepo } from '@/lib/github';
@@ -38,23 +39,42 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (step === 1 && repositories.length === 0) {
+    if (step === 1 && repositories.length === 0 && user) {
       loadRepositories();
     }
-  }, [step]);
+  }, [step, user]);
 
   const loadRepositories = async () => {
-    if (!user) return;
+    if (!user) {
+      setError('Not authenticated. Please sign in.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
+      console.log('🔍 Loading GitHub repositories for user:', user.email);
+      
       const repos = await fetchGitHubRepositories(user);
-      setRepositories(repos);
+      
+      console.log('✅ Loaded repositories:', repos.length);
+      
+      if (repos.length === 0) {
+        setError('No repositories found. Make sure you have repositories in your GitHub account.');
+      } else {
+        setRepositories(repos);
+        
+        // Check if we're getting mock data
+        const isMockData = repos.some(r => r.full_name.includes('user/'));
+        if (isMockData) {
+          console.warn('⚠️ Receiving mock data. GitHub token might be invalid.');
+          setError('Unable to fetch real repositories. Using sample data. Please check your GitHub authentication.');
+        }
+      }
     } catch (err: any) {
-      console.error('Failed to load repositories:', err);
-      setError('Failed to load repositories. Please try again.');
+      console.error('❌ Failed to load repositories:', err);
+      setError(`Failed to load repositories: ${err.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -80,12 +100,16 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
     const failed = new Set<number>();
 
     try {
+      console.log(`🚀 Connecting ${selectedRepos.size} repositories...`);
+      
       // Connect each selected repository
       for (const repoId of selectedRepos) {
         const repo = repositories.find((r) => r.id === repoId);
         if (!repo) continue;
 
         try {
+          console.log(`📦 Processing: ${repo.full_name}`);
+          
           // Setup webhook
           const { webhookId, webhookSecret } = await setupWebhook(repo.full_name);
 
@@ -108,11 +132,13 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
 
           // Mark as connected
           setConnectedRepos((prev) => new Set([...prev, repoId]));
+          
+          console.log(`✅ Connected: ${repo.full_name}`);
 
           // Small delay between repos
           await new Promise((resolve) => setTimeout(resolve, 800));
         } catch (repoError) {
-          console.error(`Failed to connect ${repo.name}:`, repoError);
+          console.error(`❌ Failed to connect ${repo.name}:`, repoError);
           failed.add(repoId);
         }
       }
@@ -128,7 +154,7 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
         onComplete();
       }
     } catch (err: any) {
-      console.error('Failed to connect repositories:', err);
+      console.error('❌ Failed to connect repositories:', err);
       setError('Failed to connect repositories. Please try again.');
       setConnecting(false);
     }
@@ -194,6 +220,15 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
               <p className="text-sm font-medium text-red-900">Error</p>
               <p className="text-sm text-red-700 mt-1">{error}</p>
             </div>
+            {step === 1 && (
+              <button
+                onClick={loadRepositories}
+                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Retry
+              </button>
+            )}
           </div>
         )}
 
@@ -207,6 +242,7 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
               loading={loading}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              onRetry={loadRepositories}
             />
           )}
 
@@ -268,6 +304,7 @@ function Step1SelectRepos({
   loading,
   searchQuery,
   setSearchQuery,
+  onRetry,
 }: {
   repositories: GitHubRepo[];
   selectedRepos: Set<number>;
@@ -275,12 +312,14 @@ function Step1SelectRepos({
   loading: boolean;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onRetry: () => void;
 }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-        <p className="text-gray-600">Loading your repositories...</p>
+        <p className="text-gray-600">Loading your repositories from GitHub...</p>
+        <p className="text-sm text-gray-500 mt-2">This may take a moment</p>
       </div>
     );
   }
@@ -303,7 +342,17 @@ function Step1SelectRepos({
       {repositories.length === 0 ? (
         <div className="text-center py-12">
           <Github className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">No repositories found</p>
+          <p className="text-gray-600 mb-2">No repositories found</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Make sure you have repositories in your GitHub account
+          </p>
+          <button
+            onClick={onRetry}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
