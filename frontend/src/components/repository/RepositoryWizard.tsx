@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Sparkles,
   RefreshCw,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchGitHubRepositories, setupWebhook, triggerInitialAnalysis, GitHubRepo } from '@/lib/github';
@@ -27,7 +28,7 @@ interface RepositoryWizardProps {
 }
 
 export default function RepositoryWizard({ onClose, onComplete }: RepositoryWizardProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [step, setStep] = useState(1);
   const [repositories, setRepositories] = useState<GitHubRepo[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<Set<number>>(new Set());
@@ -61,22 +62,36 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
       console.log('✅ Loaded repositories:', repos.length);
       
       if (repos.length === 0) {
-        setError('No repositories found. Make sure you have repositories in your GitHub account.');
+        setError('No repositories found in your GitHub account.');
       } else {
         setRepositories(repos);
-        
-        // Check if we're getting mock data
-        const isMockData = repos.some(r => r.full_name.includes('user/'));
-        if (isMockData) {
-          console.warn('⚠️ Receiving mock data. GitHub token might be invalid.');
-          setError('Unable to fetch real repositories. Using sample data. Please check your GitHub authentication.');
-        }
       }
     } catch (err: any) {
       console.error('❌ Failed to load repositories:', err);
-      setError(`Failed to load repositories: ${err.message || 'Unknown error'}`);
+      
+      // ✅ Better error messages
+      let errorMessage = 'Failed to load repositories from GitHub.';
+      
+      if (err.message.includes('token expired') || err.message.includes('token expired')) {
+        errorMessage = 'Your GitHub token has expired. Please sign out and sign in again.';
+      } else if (err.message.includes('not found')) {
+        errorMessage = 'GitHub account not properly connected. Please sign out and sign in again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      onClose();
+    } catch (err) {
+      console.error('Failed to sign out:', err);
     }
   };
 
@@ -102,7 +117,6 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
     try {
       console.log(`🚀 Connecting ${selectedRepos.size} repositories...`);
       
-      // Connect each selected repository
       for (const repoId of selectedRepos) {
         const repo = repositories.find((r) => r.id === repoId);
         if (!repo) continue;
@@ -146,7 +160,6 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
       setFailedRepos(failed);
       setConnecting(false);
       
-      // Wait a moment before moving to success step
       await new Promise((resolve) => setTimeout(resolve, 500));
       setStep(3);
 
@@ -220,15 +233,26 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
               <p className="text-sm font-medium text-red-900">Error</p>
               <p className="text-sm text-red-700 mt-1">{error}</p>
             </div>
-            {step === 1 && (
-              <button
-                onClick={loadRepositories}
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
-              >
-                <RefreshCw className="w-3 h-3" />
-                Retry
-              </button>
-            )}
+            <div className="flex gap-2">
+              {error.includes('sign out') && (
+                <button
+                  onClick={handleSignOut}
+                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
+                >
+                  <LogOut className="w-3 h-3" />
+                  Sign Out
+                </button>
+              )}
+              {step === 1 && (
+                <button
+                  onClick={loadRepositories}
+                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -282,7 +306,7 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
               </button>
               <button
                 onClick={handleConnect}
-                disabled={selectedRepos.size === 0}
+                disabled={selectedRepos.size === 0 || loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 Connect {selectedRepos.size > 0 && `(${selectedRepos.size})`}
@@ -296,7 +320,7 @@ export default function RepositoryWizard({ onClose, onComplete }: RepositoryWiza
   );
 }
 
-// Step 1: Select Repositories
+// Step components remain the same as before...
 function Step1SelectRepos({
   repositories,
   selectedRepos,
@@ -326,7 +350,6 @@ function Step1SelectRepos({
 
   return (
     <div className="space-y-4">
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
@@ -338,7 +361,6 @@ function Step1SelectRepos({
         />
       </div>
 
-      {/* Repository Grid */}
       {repositories.length === 0 ? (
         <div className="text-center py-12">
           <Github className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -360,16 +382,16 @@ function Step1SelectRepos({
             <RepoCard
               key={repo.id}
               repo={{
-                id: repo.id,
-                name: repo.name,
-                full_name: repo.full_name,
-                description: repo.description ?? undefined,
-                language: repo.language ?? undefined,
-                default_branch: repo.default_branch,
-                updated_at: repo.updated_at,
-                private: repo.private,
-                stargazers_count: repo.stargazers_count,
-              }}
+    id: repo.id,
+    name: repo.name,
+    full_name: repo.full_name,
+    description: repo.description ?? undefined,
+    language: repo.language ?? undefined,
+    default_branch: repo.default_branch,
+    updated_at: repo.updated_at,
+    private: repo.private,
+    stargazers_count: repo.stargazers_count,
+  }}
               isSelected={selectedRepos.has(repo.id)}
               onSelect={toggleRepo}
             />
@@ -380,7 +402,6 @@ function Step1SelectRepos({
   );
 }
 
-// Step 2: Connecting
 function Step2Connecting({
   selectedRepos,
   connectedRepos,
@@ -402,7 +423,6 @@ function Step2Connecting({
   );
 }
 
-// Step 3: Complete
 function Step3Complete({ 
   connectedCount,
   failedCount,

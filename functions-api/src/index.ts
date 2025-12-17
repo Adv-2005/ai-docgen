@@ -16,6 +16,9 @@ export const health = functions.https.onRequest((req, res) => {
 // GitHub webhook handler
 export { githubWebhook } from "./webhooks/github";
 
+// ✅ NEW: Webhook setup endpoint
+export { setupWebhook } from "./webhooks/setupWebhook";
+
 // Queue processing
 export { processPubSubQueue, retryFailedQueueItems } from "./queue/processor";
 
@@ -27,7 +30,7 @@ export {
   getMetrics
 } from "./monitoring/metrics";
 
-// GitHub token retrieval (NEW!)
+// GitHub token retrieval
 export { getGitHubToken } from "./github/getGitHubToken";
 
 // Pub/Sub worker for repository analysis
@@ -49,7 +52,6 @@ export const analyzeRepo = functions.pubsub
     const db = admin.firestore();
     const now = new Date();
 
-    // If jobId is provided, update the job status
     if (jobId) {
       try {
         await db.collection("jobs").doc(jobId).update({
@@ -67,7 +69,6 @@ export const analyzeRepo = functions.pubsub
       }
     }
 
-    // Create result document
     const resultRef = db.collection("jobResults").doc();
     await resultRef.set({
       jobId: jobId || null,
@@ -79,7 +80,6 @@ export const analyzeRepo = functions.pubsub
       resultAt: now,
     });
 
-    // Update job to completed
     if (jobId) {
       await db.collection("jobs").doc(jobId).update({
         status: "completed",

@@ -6,6 +6,8 @@ import UserProfileDropdown from '@/components/Auth/UserProfileDropdown';
 import RepositoryWizard from '@/components/repository/RepositoryWizard';
 import { useRepositories } from '@/hooks/useRepositories';
 import { FileText, Github, Loader2, Plus } from 'lucide-react';
+import GitHubDebug from '@/components/debug/GitHubDebug';
+
 
 export default function RepositoriesPage() {
   const [showWizard, setShowWizard] = useState(false);
@@ -31,6 +33,7 @@ export default function RepositoriesPage() {
         </header>
 
         {/* Main Content */}
+        {/* <GitHubDebug /> */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">

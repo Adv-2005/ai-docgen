@@ -54,6 +54,21 @@ export interface Job {
 }
 
 /**
+ * ✅ FIXED: Remove undefined values before storing in Firestore
+ */
+function cleanData<T extends Record<string, any>>(data: T): Partial<T> {
+  const cleaned: Partial<T> = {};
+  
+  for (const key in data) {
+    if (data[key] !== undefined) {
+      cleaned[key] = data[key];
+    }
+  }
+  
+  return cleaned;
+}
+
+/**
  * Add a repository to Firestore
  */
 export async function addRepository(
@@ -63,20 +78,37 @@ export async function addRepository(
   try {
     const repoRef = doc(collection(db, 'repositories'));
     
-    const repository: Omit<Repository, 'id'> = {
-      ...repoData,
+    // ✅ FIXED: Build repository object without undefined values
+    const repository: Record<string, any> = {
       userId,
+      repoId: repoData.repoId,
+      repoFullName: repoData.repoFullName,
+      ownerLogin: repoData.ownerLogin,
+      name: repoData.name,
+      isPrivate: repoData.isPrivate,
+      defaultBranch: repoData.defaultBranch,
+      webhookId: repoData.webhookId,
+      webhookSecret: repoData.webhookSecret,
       isActive: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
+    // ✅ Only add optional fields if they have values
+    if (repoData.description !== undefined && repoData.description !== null) {
+      repository.description = repoData.description;
+    }
+    
+    if (repoData.language !== undefined && repoData.language !== null) {
+      repository.language = repoData.language;
+    }
+
     await setDoc(repoRef, repository);
     
-    console.log('Repository added to Firestore:', repoRef.id);
+    console.log('✅ Repository added to Firestore:', repoRef.id);
     return repoRef.id;
   } catch (error) {
-    console.error('Error adding repository:', error);
+    console.error('❌ Error adding repository:', error);
     throw error;
   }
 }
@@ -100,7 +132,7 @@ export async function getRepositories(userId: string): Promise<Repository[]> {
       ...doc.data(),
     } as Repository));
   } catch (error) {
-    console.error('Error fetching repositories:', error);
+    console.error('❌ Error fetching repositories:', error);
     throw error;
   }
 }
@@ -129,7 +161,7 @@ export function subscribeToRepositories(
       callback(repos);
     },
     (error) => {
-      console.error('Error in repository subscription:', error);
+      console.error('❌ Error in repository subscription:', error);
     }
   );
 }
@@ -153,7 +185,7 @@ export function subscribeToJobs(callback: (jobs: Job[]) => void): () => void {
       callback(jobs);
     },
     (error) => {
-      console.error('Error in jobs subscription:', error);
+      console.error('❌ Error in jobs subscription:', error);
     }
   );
 }
@@ -175,7 +207,7 @@ export async function getJob(jobId: string): Promise<Job | null> {
       ...jobSnap.data(),
     } as Job;
   } catch (error) {
-    console.error('Error fetching job:', error);
+    console.error('❌ Error fetching job:', error);
     throw error;
   }
 }
@@ -194,7 +226,7 @@ export async function updateRepositoryStats(
       updatedAt: serverTimestamp(),
     }, { merge: true });
   } catch (error) {
-    console.error('Error updating repository stats:', error);
+    console.error('❌ Error updating repository stats:', error);
     throw error;
   }
 }

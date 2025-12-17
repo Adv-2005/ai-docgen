@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzeRepo = exports.getGitHubToken = exports.getMetrics = exports.generateDailySummary = exports.trackJobMetrics = exports.trackWebhookMetrics = exports.retryFailedQueueItems = exports.processPubSubQueue = exports.githubWebhook = exports.health = void 0;
+exports.analyzeRepo = exports.getGitHubToken = exports.getMetrics = exports.generateDailySummary = exports.trackJobMetrics = exports.trackWebhookMetrics = exports.retryFailedQueueItems = exports.processPubSubQueue = exports.setupWebhook = exports.githubWebhook = exports.health = void 0;
 // functions-api/src/index.ts
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
@@ -39,6 +39,9 @@ exports.health = functions.https.onRequest((req, res) => {
 // GitHub webhook handler
 var github_1 = require("./webhooks/github");
 Object.defineProperty(exports, "githubWebhook", { enumerable: true, get: function () { return github_1.githubWebhook; } });
+// ✅ NEW: Webhook setup endpoint
+var setupWebhook_1 = require("./webhooks/setupWebhook");
+Object.defineProperty(exports, "setupWebhook", { enumerable: true, get: function () { return setupWebhook_1.setupWebhook; } });
 // Queue processing
 var processor_1 = require("./queue/processor");
 Object.defineProperty(exports, "processPubSubQueue", { enumerable: true, get: function () { return processor_1.processPubSubQueue; } });
@@ -49,7 +52,7 @@ Object.defineProperty(exports, "trackWebhookMetrics", { enumerable: true, get: f
 Object.defineProperty(exports, "trackJobMetrics", { enumerable: true, get: function () { return metrics_1.trackJobMetrics; } });
 Object.defineProperty(exports, "generateDailySummary", { enumerable: true, get: function () { return metrics_1.generateDailySummary; } });
 Object.defineProperty(exports, "getMetrics", { enumerable: true, get: function () { return metrics_1.getMetrics; } });
-// GitHub token retrieval (NEW!)
+// GitHub token retrieval
 var getGitHubToken_1 = require("./github/getGitHubToken");
 Object.defineProperty(exports, "getGitHubToken", { enumerable: true, get: function () { return getGitHubToken_1.getGitHubToken; } });
 // Pub/Sub worker for repository analysis
@@ -68,7 +71,6 @@ exports.analyzeRepo = functions.pubsub
     });
     const db = admin.firestore();
     const now = new Date();
-    // If jobId is provided, update the job status
     if (jobId) {
         try {
             await db.collection("jobs").doc(jobId).update({
@@ -85,7 +87,6 @@ exports.analyzeRepo = functions.pubsub
             });
         }
     }
-    // Create result document
     const resultRef = db.collection("jobResults").doc();
     await resultRef.set({
         jobId: jobId || null,
@@ -96,7 +97,6 @@ exports.analyzeRepo = functions.pubsub
         receivedAt: now,
         resultAt: now,
     });
-    // Update job to completed
     if (jobId) {
         await db.collection("jobs").doc(jobId).update({
             status: "completed",
