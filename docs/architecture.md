@@ -734,6 +734,7 @@ The project follows a standard Next.js `src` directory structure:
 
 ## implemented features till now- 
 1. Authentication flow(Github OAuth via Firebase)
+2. Repository Integration- I can see repositories of my github after getting authenticated.
 
 ## features to be implemented next- 
 
@@ -774,21 +775,3 @@ Cost savings: $12,400/quarter
 
 Usage Statistics: Active users, total analyses, performance metrics
 Trend Visualizations: Coverage over time
-
-
-## What I am currently building 
-Repository connection wizard-
-1. Shows user's GitHub repositories
-2. Allows them to select repos to connect
-3. Sets up webhooks automatically
-4. Stores repo configuration in Firestore
-
-Right now its implementing- 
-1. Mock Mode: Works without GitHub API during development
-2. Error Handling: Graceful fallbacks and user-friendly messages
-3. Real-time Updates: Firestore listeners for auto-refresh
-4. Mobile Responsive: Works on all screen sizes
-5. TypeScript: Fully typed with interfaces
-6. Animations: Smooth transitions and loading states
-
-I have currently implemneted this with mock repositories but i want it to fetch real github repos of my github account which i am logged in to

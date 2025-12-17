@@ -149,7 +149,7 @@ Each milestone represents a functional advancement in the system’s capabilitie
   - Recent activity
 
 ### Expected Deliverables
-- Repository dashboard page.
+- Repository dashboard page. (Implemented)
 - Documentation explorer UI.
 - Search powered by vector DB.
 - Metrics & charts for business impact.
