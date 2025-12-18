@@ -26,6 +26,7 @@
     "@google-cloud/pubsub": "^5.2.0",
     "@octokit/rest": "^22.0.1",
     "admin": "^1.4.1",
+    "express": "^5.2.1",
     "firebase": "^12.6.0",
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.1",
