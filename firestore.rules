@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Allow all operations for development (emulator only!)
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 1, 9);
+      allow read, write: if request.time < timestamp.date(2026, 3, 20);
     }
     
     // For production, use these rules:

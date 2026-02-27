@@ -116,11 +116,9 @@ export async function setupWebhook(repoFullName: string): Promise<{
 }> {
   console.log('⚙️ Setting up webhook for:', repoFullName);
 
-  // In development/production, call your Cloud Function
-  const functionsUrl = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL || 'http://127.0.0.1:5001/ai-docgen-44b16/us-central1';
-  
+  // Use relative URL - always calls the same domain the app is running on
   try {
-    const response = await fetch(`${functionsUrl}/setupWebhook`, {
+    const response = await fetch('/api/setup-webhook', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -152,16 +150,9 @@ export async function setupWebhook(repoFullName: string): Promise<{
 export async function triggerInitialAnalysis(repoFullName: string): Promise<void> {
   console.log('🚀 Triggering initial analysis for:', repoFullName);
 
-  // For now, skip this call since the function doesn't exist yet
-  // TODO: Implement after creating triggerAnalysis Cloud Function
-  console.log('⚠️ Skipping analysis trigger - function not implemented yet');
-  return;
-  
-
-  const functionsUrl = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL || 'http://127.0.0.1:5001/ai-docgen-44b16/us-central1';
-  
+  // Use relative URL - always calls the same domain the app is running on
   try {
-    const response = await fetch(`${functionsUrl}/triggerAnalysis`, {
+    const response = await fetch('/api/trigger-analysis', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -180,5 +171,4 @@ export async function triggerInitialAnalysis(repoFullName: string): Promise<void
   } catch (error) {
     console.error('❌ Analysis trigger error:', error);
   }
-
 }

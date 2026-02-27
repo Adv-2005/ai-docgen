@@ -734,7 +734,6 @@ The project follows a standard Next.js `src` directory structure:
 
 ## implemented features till now- 
 1. Authentication flow(Github OAuth via Firebase)
-2. Repository Integration- I can see repositories of my github after getting authenticated.
 
 ## features to be implemented next- 
 
@@ -775,3 +774,7 @@ Cost savings: $12,400/quarter
 
 Usage Statistics: Active users, total analyses, performance metrics
 Trend Visualizations: Coverage over time
+
+
+## What I am currently building 
+Documentation Generation/Browse/ Sementic Search. 
