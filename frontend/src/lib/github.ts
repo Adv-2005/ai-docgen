@@ -172,3 +172,53 @@ export async function triggerInitialAnalysis(repoFullName: string): Promise<void
     console.error('❌ Analysis trigger error:', error);
   }
 }
+
+/**
+ * Trigger documentation generation for a repository
+ */
+export async function triggerDocumentationGeneration(
+  repoFullName: string, 
+  docType: 'full-analysis' | 'architecture' | 'api' | 'onboarding' | 'change-summary' = 'full-analysis'
+): Promise<any> {
+  console.log('📚 Triggering documentation generation for:', repoFullName, 'Type:', docType);
+
+  try {
+    // Step 1 — create a job record
+    const jobResponse = await fetch('/api/trigger-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        repoFullName,
+        jobType: 'documentation-generation',
+        documentationType: docType
+      }),
+    });
+
+    const jobResult = await jobResponse.json().catch(() => ({}));
+    const jobId = jobResult?.jobId;
+    console.log('✅ Job created:', jobId);
+
+    // Step 2 — actually generate the documentation
+    const genResponse = await fetch('/api/generate-docs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        repoFullName,
+        documentationType: docType,
+        jobId,
+      }),
+    });
+
+    if (!genResponse.ok) {
+      const error = await genResponse.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Documentation generation failed: ${error.message || genResponse.status}`);
+    }
+
+    const result = await genResponse.json();
+    console.log('✅ Documentation generation triggered:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Documentation generation error:', error);
+    throw error;
+  }
+}

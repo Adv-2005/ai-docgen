@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { repoFullName, jobType } = body;
+    const { repoFullName, jobType, documentationType } = body;
 
     if (!repoFullName || !jobType) {
       return NextResponse.json(
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🚀 Triggering analysis for:', repoFullName, 'Type:', jobType);
+    console.log('🚀 Triggering analysis for:', repoFullName, 'Type:', jobType, 'DocType:', documentationType);
 
     // Get Firestore instance safely
     const db = getDb();
@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
       metadata: {
         triggeredBy: 'manual',
+        documentationType: documentationType || null,
       },
     };
 
@@ -130,6 +131,7 @@ export async function POST(request: NextRequest) {
       jobId: jobRef.id,
       repoFullName,
       jobType,
+      documentationType,
     });
 
     // Publish to queue for worker processing
@@ -139,6 +141,7 @@ export async function POST(request: NextRequest) {
         jobId: jobRef.id,
         jobType,
         repoFullName,
+        documentationType: documentationType || null,
       },
       published: false,
       createdAt: new Date(),

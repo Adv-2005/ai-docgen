@@ -31,7 +31,7 @@ export interface JobResult {
   createdAt: Date;
 }
 
-export function useDocumentation(repoId?: string) {
+export function useDocumentation(repoFullName?: string) {
   const [documents, setDocuments] = useState<JobResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,15 +39,21 @@ export function useDocumentation(repoId?: string) {
   useEffect(() => {
     setLoading(true);
     
-    // Query jobResults collection
-    let q = query(
-      collection(db, 'jobResults'),
-      where('status', '==', 'completed'),
-      orderBy('createdAt', 'desc')
-    );
-
-    if (repoId) {
-      q = query(q, where('repoId', '==', repoId));
+    // Build query – if repoFullName is given, filter server-side
+    let q;
+    if (repoFullName) {
+      q = query(
+        collection(db, 'jobResults'),
+        where('status', '==', 'completed'),
+        where('repoFullName', '==', repoFullName),
+        orderBy('createdAt', 'desc')
+      );
+    } else {
+      q = query(
+        collection(db, 'jobResults'),
+        where('status', '==', 'completed'),
+        orderBy('createdAt', 'desc')
+      );
     }
 
     const unsubscribe = onSnapshot(
@@ -70,7 +76,7 @@ export function useDocumentation(repoId?: string) {
     );
 
     return () => unsubscribe();
-  }, [repoId]);
+  }, [repoFullName]);
 
   return { documents, loading, error };
 }
