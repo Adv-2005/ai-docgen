@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "vercel-build": "cd frontend && npm run build"
   },
   "workspaces": [
     "functions-api",
