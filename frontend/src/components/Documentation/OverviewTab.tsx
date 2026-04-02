@@ -44,14 +44,18 @@ interface OverviewTabProps {
     totalDocs: number;
     timeSaved: string;
     costSavings: string;
-  };
+  } | null;
+  repositories?: any[];
+  documents?: any[];
   coverageTrend?: Array<{ date: string; coverage: number }>;
   jobStatus?: Array<{ name: string; value: number }>;
   recentActivity?: ActivityItem[];
 }
 
 export default function OverviewTab({ 
-  metrics = { activeRepos: 5, totalDocs: 127, timeSaved: '156 hrs', costSavings: '$12.4k' },
+  metrics: metricsFromProps,
+  repositories = [],
+  documents = [],
   coverageTrend = [
     { date: 'Mon', coverage: 45 },
     { date: 'Tue', coverage: 52 },
@@ -74,6 +78,14 @@ export default function OverviewTab({
   ]
 }: OverviewTabProps) {
   const COLORS = ['#22c55e', '#3b82f6', '#ef4444'];
+
+  // Calculate metrics from repositories and documents if not provided
+  const metrics = metricsFromProps || {
+    activeRepos: repositories.length,
+    totalDocs: documents.length,
+    timeSaved: `${documents.length * 2} hrs`,
+    costSavings: `$${(documents.length * 0.5).toFixed(1)}k`,
+  };
 
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {

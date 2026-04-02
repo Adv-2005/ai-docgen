@@ -205,7 +205,7 @@ function RepoCard({ repo }: { repo: any }) {
     </div>
   );
 
-  async function handleGenerateSpecificDoc(type: string) {
+  async function handleGenerateSpecificDoc(type: 'architecture' | 'api' | 'onboarding' | 'change-summary') {
     setIsGenerating(true);
     try {
       await triggerDocumentationGeneration(repo.repoFullName, type);
